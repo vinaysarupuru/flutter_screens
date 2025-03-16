@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+
+import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,17 +13,16 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(body: CustomSearchBar2()),
+      home: Scaffold(body: SearchBarScreen3()),
     );
   }
 }
 
-class CustomSearchBar2 extends StatefulWidget {
+class SearchBarScreen3 extends StatefulWidget {
   final Function(String)? onSearchChanged;
   final Function(String)? onSearchSubmitted;
   final bool isMini;
-
-  const CustomSearchBar2({
+  const SearchBarScreen3({
     super.key,
     this.onSearchChanged,
     this.onSearchSubmitted,
@@ -30,10 +30,10 @@ class CustomSearchBar2 extends StatefulWidget {
   });
 
   @override
-  State<CustomSearchBar2> createState() => _CustomSearchBar2State();
+  State<SearchBarScreen3> createState() => _SearchBarScreen3State();
 }
 
-class _CustomSearchBar2State extends State<CustomSearchBar2>
+class _SearchBarScreen3State extends State<SearchBarScreen3>
     with SingleTickerProviderStateMixin {
   Timer? _debounce;
   final TextEditingController _searchController = TextEditingController();
@@ -41,7 +41,6 @@ class _CustomSearchBar2State extends State<CustomSearchBar2>
   late Animation<double> _animation;
   bool _isExpanded = false;
   final FocusNode _focusNode = FocusNode();
-
   @override
   void initState() {
     super.initState();
@@ -54,14 +53,10 @@ class _CustomSearchBar2State extends State<CustomSearchBar2>
       curve: Curves.easeInOut,
     );
 
-    // If not in mini mode, start expanded
-    _isExpanded = !widget.isMini;
-    if (_isExpanded) {
-      _animationController.value = 1.0;
-    }
-
-    // Add focus listener
-    _focusNode.addListener(_onFocusChange);
+    // Delayed initialization of focus listeners
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _focusNode.addListener(_onFocusChange);
+    // });
   }
 
   @override
@@ -70,8 +65,14 @@ class _CustomSearchBar2State extends State<CustomSearchBar2>
     _searchController.dispose();
     _animationController.dispose();
     _focusNode.removeListener(_onFocusChange);
+    _focusNode.unfocus();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _buildSearchBar();
   }
 
   void _onSearchChanged(String query) {
@@ -94,15 +95,7 @@ class _CustomSearchBar2State extends State<CustomSearchBar2>
   }
 
   void _onFocusChange() {
-    // Only collapse if:
-    // 1. We lose focus
-    // 2. In mini mode
-    // 3. Currently expanded
-    // 4. There is no text in the search field
-    if (!_focusNode.hasFocus &&
-        widget.isMini &&
-        _isExpanded &&
-        _searchController.text.isEmpty) {
+    if (!_focusNode.hasFocus && _isExpanded && _searchController.text.isEmpty) {
       setState(() {
         _isExpanded = false;
         _animationController.reverse();
@@ -111,41 +104,44 @@ class _CustomSearchBar2State extends State<CustomSearchBar2>
   }
 
   void _toggleSearch() {
-    // Only toggle if in mini mode
-    if (widget.isMini) {
-      setState(() {
-        _isExpanded = !_isExpanded;
-        if (_isExpanded) {
-          _animationController.forward();
-        } else {
-          _animationController.reverse();
-          _searchController.clear();
-        }
-      });
-    }
+    setState(() {
+      _isExpanded = !_isExpanded;
+      if (_isExpanded) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+        _searchController.clear();
+      }
+    });
   }
 
   void _clearSearch() {
-    // Only clear text without collapsing
-    _searchController.clear();
+    if (_searchController.text.isNotEmpty) {
+      _searchController.clear();
+    } else {
+      _onFocusChange();
+    }
+    // submit
+    _onSearchChanged("");
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 48.0, left: 16.0, right: 16.0),
+      child: Align(
+        alignment: Alignment.topCenter,
         child: AnimatedBuilder(
           animation: _animation,
           builder: (context, child) {
             return Container(
               width:
-                  _isExpanded
-                      ? MediaQuery.of(context).size.width > 600
-                          ? 600
-                          : MediaQuery.of(context).size.width - 32
-                      : 44,
+                  widget.isMini
+                      ? (_isExpanded
+                          ? MediaQuery.of(context).size.width > 600
+                              ? 600
+                              : MediaQuery.of(context).size.width - 32
+                          : 44)
+                      : 600,
               constraints: const BoxConstraints(minWidth: 44),
               height: 44,
               decoration: BoxDecoration(
@@ -193,9 +189,12 @@ class _CustomSearchBar2State extends State<CustomSearchBar2>
             controller: _searchController,
             focusNode: _focusNode,
             onChanged: _onSearchChanged,
+
             onSubmitted: _onSubmitted,
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              hintText: 'Search for something',
+              hintText: 'Search profile items',
               hintStyle: TextStyle(
                 color: Colors.grey[350],
                 fontSize: 14,
@@ -205,24 +204,17 @@ class _CustomSearchBar2State extends State<CustomSearchBar2>
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
             ),
-            autofocus: true, // Focus automatically when expanded
+            autofocus: true,
           ),
         ),
         IconButton(
           icon: Icon(Icons.close, color: Colors.grey[500], size: 18),
-          onPressed: _clearSearch, // Changed to only clear text
+          onPressed: _clearSearch,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          iconSize: 18,
         ),
-        Container(
-          width: 40,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: const BorderRadius.all(Radius.zero),
-          ),
-          child: Center(
-            child: Icon(Icons.menu, color: Colors.grey[800], size: 18),
-          ),
-        ),
+        const SizedBox(width: 16),
       ],
     );
   }
