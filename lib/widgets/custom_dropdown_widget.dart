@@ -7,6 +7,7 @@ class PriorityDropdown extends StatelessWidget {
   final ValueChanged<Priority?> onChanged;
   final String? label;
   final bool showLabel;
+  final bool showAllOption;
 
   const PriorityDropdown({
     super.key,
@@ -14,6 +15,7 @@ class PriorityDropdown extends StatelessWidget {
     required this.onChanged,
     this.label,
     this.showLabel = false,
+    this.showAllOption = false, // Default to not showing "All" option
   });
 
   @override
@@ -29,7 +31,10 @@ class PriorityDropdown extends StatelessWidget {
         ],
         Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 4,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
@@ -57,26 +62,28 @@ class PriorityDropdown extends StatelessWidget {
                 style: TextStyle(color: Theme.of(context).hintColor),
               ),
               items: [
-                DropdownMenuItem<Priority?>(
-                  value: null,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.filter_list,
-                        size: 18,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'All',
-                        style: TextStyle(
+                // Only show "All" option if showAllOption is true
+                if (showAllOption)
+                  DropdownMenuItem<Priority?>(
+                    value: null,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.filter_list,
+                          size: 18,
                           color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.bold,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          'All',
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
                 ...Priority.values.map(_buildPriorityItem).toList(),
               ],
               onChanged: onChanged,
@@ -114,11 +121,18 @@ class PriorityDropdown extends StatelessWidget {
       value: priority,
       child: Row(
         children: [
-          Icon(priorityIcon, size: 18, color: priorityColor),
+          Icon(
+            priorityIcon,
+            size: 18,
+            color: priorityColor,
+          ),
           const SizedBox(width: 8),
           Text(
             priority.name[0].toUpperCase() + priority.name.substring(1),
-            style: TextStyle(color: priorityColor, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: priorityColor,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
